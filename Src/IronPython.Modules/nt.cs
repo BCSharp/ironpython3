@@ -248,7 +248,10 @@ namespace IronPython.Modules {
         /// single instance of environment dictionary is shared between multiple runtimes because the environment
         /// is shared by multiple runtimes.
         /// </summary>
-        public static readonly object environ = new PythonDictionary(new EnvironmentDictionaryStorage());
+        public static readonly object environ = new PythonDictionary(
+            Environment.OSVersion.Platform == PlatformID.Unix ?
+              (DictionaryStorage)new ByteEnvironmentDictionaryStorage()
+            : (DictionaryStorage)new EnvironmentDictionaryStorage());
 #endif
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes")]

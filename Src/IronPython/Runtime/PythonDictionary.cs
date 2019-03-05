@@ -888,6 +888,101 @@ namespace IronPython.Runtime {
             return _storage.GetItems();
         }
     }
+
+    [Serializable]
+    internal sealed class ByteEnvironmentDictionaryStorage : DictionaryStorage {
+        private readonly CommonDictionaryStorage/*!*/ _storage = new CommonDictionaryStorage();
+        private readonly string _encodingName;
+        [NonSerialized]
+        private Encoding _encoding;
+
+        public ByteEnvironmentDictionaryStorage() {
+            _encodingName = (string)Modules.SysModule.getfilesystemencoding();
+            AddEnvironmentVars();
+        }
+
+        private void AddEnvironmentVars() {
+            try {
+                foreach (DictionaryEntry de in Environment.GetEnvironmentVariables()) {
+                    _storage.Add(Encode((string)de.Key), Encode((string)de.Value));
+                }
+            } catch (SecurityException) {
+                // environment isn't available under partial trust
+            }
+        }
+
+        private Bytes Encode(string s) {
+            if (s == null) return null;
+
+            if (_encoding == null) {
+                StringOps.TryGetEncoding(_encodingName, out Encoding e);
+                _encoding = new PythonSurrogateEscapeEncoding(e);
+            }
+
+            byte[] bytes = _encoding.GetBytes(s);
+            return Bytes.Make(bytes);
+        }
+
+        private string Decode(IList<byte> blist) {
+            if (blist == null) return null;
+
+            if (_encoding == null) {
+                StringOps.TryGetEncoding(_encodingName, out Encoding e);
+                _encoding = new PythonSurrogateEscapeEncoding(e);
+            }
+
+            byte[] bytes = blist as byte[] ?? ((blist is Bytes b) ? b.GetUnsafeByteArray() : blist.ToArray());
+            return _encoding.GetString(bytes);
+        }
+
+        public override void Add(ref DictionaryStorage storage, object key, object value) {
+            _storage.Add(key, value);
+
+            string s1 = Decode(key as IList<byte>);
+            string s2 = Decode(value as IList<byte>);
+            if (s1 != null && s2 != null) {
+                Environment.SetEnvironmentVariable(s1, s2);
+            }
+        }
+
+        public override bool Remove(ref DictionaryStorage storage, object key) {
+            bool res = _storage.Remove(key);
+
+            string s = Decode(key as IList<byte>);
+            if (s != null) {
+                Environment.SetEnvironmentVariable(s, string.Empty);
+            }
+
+            return res;
+        }
+
+        public override bool Contains(object key) {
+            return _storage.Contains(key);
+        }
+
+        public override bool TryGetValue(object key, out object value) {
+            return _storage.TryGetValue(key, out value);
+        }
+
+        public override int Count {
+            get { return _storage.Count; }
+        }
+
+        public override void Clear(ref DictionaryStorage storage) {
+            foreach (var x in GetItems()) {
+                string key = Decode(x.Key as IList<byte>);
+                if (key != null) {
+                    Environment.SetEnvironmentVariable(key, string.Empty);
+                }
+            }
+
+            _storage.Clear(ref storage);
+        }
+
+        public override List<KeyValuePair<object, object>> GetItems() {
+            return _storage.GetItems();
+        }
+    }
 #endif
 
     /// <summary>
