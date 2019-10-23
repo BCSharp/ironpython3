@@ -139,21 +139,44 @@ namespace IronPython.Runtime {
         public override byte[] GetPreamble() => Pass1Encoding.GetPreamble();
         public override bool IsAlwaysNormalized(NormalizationForm form) => false;
 
+        #region BugCorefx29898
+
         public static bool HasBugCorefx29898 {
             get {
                 if (_hasBugCorefx29898 == null) {
-                    try {
-                        var codec = (Encoding)new UTF8Encoding(false, throwOnInvalidBytes: true);
-                        codec.GetCharCount(new byte[] { 255 });
-                        _hasBugCorefx29898 = false;
-                    } catch (DecoderFallbackException ex) {
-                        _hasBugCorefx29898 = (ex.Index < 0);
-                    }
+                    var codec = (Encoding)UTF8.Clone();
+                    codec.DecoderFallback = new TestUtf8DecoderFallback();
+                    var decoder = codec.GetDecoder();
+                    decoder.GetCharCount(new byte[] { 255 }, 0, 1);
+                    _hasBugCorefx29898 = ((TestUtf8DecoderFallbackBuffer)decoder.FallbackBuffer).BugDetected;
                 }
                 return (bool)_hasBugCorefx29898;
             }
         }
         private static bool? _hasBugCorefx29898;
+
+        private class TestUtf8DecoderFallback : DecoderFallback {
+            public override int MaxCharCount => 0;
+
+            public override DecoderFallbackBuffer CreateFallbackBuffer() => new TestUtf8DecoderFallbackBuffer();
+        }
+
+        private class TestUtf8DecoderFallbackBuffer : DecoderFallbackBuffer {
+            public bool BugDetected { get; set; }
+
+            public override int Remaining => 0;
+
+            public override bool Fallback(byte[] bytesUnknown, int index) {
+                BugDetected |= (index < 0);
+                return false;
+            }
+
+            public override char GetNextChar() => '\0';
+
+            public override bool MovePrevious() => false;
+        }
+
+        #endregion
 
         public class PythonEncoder : Encoder {
             private readonly PythonEncoding _parentEncoding;
