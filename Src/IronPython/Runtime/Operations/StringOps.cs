@@ -2607,39 +2607,8 @@ namespace IronPython.Runtime.Operations {
         private class ExceptionFallBack : DecoderFallback {
             internal ExceptionFallbackBuffer buffer;
 
-            #region check for Utf8 Fallback issue
-
-            private static bool isUtf8Bugged;
-
-            private class TestUtf8DecoderFallBack : DecoderFallback {
-                public override int MaxCharCount => 0;
-
-                public override DecoderFallbackBuffer CreateFallbackBuffer() => new TestUtf8DecoderFallbackBuffer();
-            }
-
-            private class TestUtf8DecoderFallbackBuffer : DecoderFallbackBuffer {
-                public override int Remaining => 0;
-
-                public override bool Fallback(byte[] bytesUnknown, int index) {
-                    if (index < 0) throw new Exception();
-                    return false;
-                }
-
-                public override char GetNextChar() => (char)0;
-
-                public override bool MovePrevious() => false;
-            }
-
-            static ExceptionFallBack() {
-                var e = (Encoding)Encoding.UTF8.Clone();
-                e.DecoderFallback = new TestUtf8DecoderFallBack();
-                try { e.GetString(new byte[] { 255 }); } catch { isUtf8Bugged = true; }
-            }
-
-            #endregion
-
             public ExceptionFallBack(int length, bool isUtf8 = false) {
-                buffer = isUtf8 && isUtf8Bugged ? new ExceptionFallbackBufferUtf8DotNet(length) : new ExceptionFallbackBuffer(length);
+                buffer = isUtf8 && PythonEncoding.HasBugCorefx29898 ? new ExceptionFallbackBufferUtf8DotNet(length) : new ExceptionFallbackBuffer(length);
             }
 
             public override DecoderFallbackBuffer CreateFallbackBuffer() => buffer;
