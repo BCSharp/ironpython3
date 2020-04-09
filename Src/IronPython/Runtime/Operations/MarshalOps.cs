@@ -482,7 +482,7 @@ namespace IronPython.Runtime.Operations {
             private double ReadFloatStr () {
                 MoveNext ();
 
-                string str = DecodeString (PythonAsciiEncoding.Instance, ReadBytes (_myBytes.Current));
+                string str = DecodeString (Encoding.ASCII, ReadBytes (_myBytes.Current));
 
                 double res = 0;
                 if (double.TryParse (str, out res)) {
@@ -533,7 +533,7 @@ namespace IronPython.Runtime.Operations {
             }
 
             private object ReadAsciiString () {
-                string res = DecodeString (PythonAsciiEncoding.Instance, ReadBytes (ReadInt32 ()));
+                string res = DecodeString (StringOps.Latin1Encoding, ReadBytes (ReadInt32 ()));
                 _strings[_strings.Count] = res;
                 return res;
             }

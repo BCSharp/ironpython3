@@ -1916,7 +1916,7 @@ namespace IronPython.Runtime.Operations {
                     // for the common types cp* are not actual Python aliases, but GetEncodingName may return them
                     switch (normalizedName) {
                         case "us_ascii":
-                            d["cp" + encInfo.CodePage.ToString()] = d["us_ascii"] = d["us"] = d["ascii"] = d["646"] = makeEncodingProxy(() => PythonAsciiEncoding.Instance);
+                            d["cp" + encInfo.CodePage.ToString()] = d["us_ascii"] = d["us"] = d["ascii"] = d["646"] = makeEncodingProxy(() => Encoding.ASCII);
                             continue;
                         case "utf_7":
                             d["cp" + encInfo.CodePage.ToString()] = d["utf_7"] = d["u7"] = d["unicode_1_1_utf_7"] = makeEncodingProxy(() => new UTF7Encoding(allowOptionals: true));

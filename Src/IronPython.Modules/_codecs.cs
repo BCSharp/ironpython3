@@ -55,10 +55,10 @@ namespace IronPython.Modules {
         #region ASCII Encoding
 
         public static PythonTuple ascii_decode(CodeContext context, [BytesLike,NotNull]ReadOnlyMemory<byte> input, string? errors = null)
-            => DoDecode(context, "ascii", PythonAsciiEncoding.Instance, input, errors, input.Length).ToPythonTuple();
+            => DoDecode(context, "ascii", Encoding.ASCII, input, errors, input.Length).ToPythonTuple();
 
         public static PythonTuple ascii_encode(CodeContext context, [NotNull]string input, string? errors = null)
-            => DoEncode(context, "ascii", PythonAsciiEncoding.Instance, input, errors).ToPythonTuple();
+            => DoEncode(context, "ascii", Encoding.ASCII, input, errors).ToPythonTuple();
 
         #endregion
 
