@@ -32,7 +32,7 @@ namespace IronPython.Compiler {
     //   # starts a comment
     // that's probably about all you need to know to get stuck in.
 
-    public class Parser : IDisposable { // TODO: remove IDisposable
+    public class Parser : IDisposable {
         // immutable properties:
         private readonly Tokenizer _tokenizer;
 

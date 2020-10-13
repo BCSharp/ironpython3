@@ -546,6 +546,17 @@ class BuiltinsTest2(IronPythonTestCase):
         self.assertEqual(eval("x + y", None, None), 30)
         self.assertEqual(eval("x + y", None), 30)
         self.assertEqual(eval("x + y", None, d2), 24)
+        self.assertEqual(eval("x + y", d1, d2), 7)
+
+        self.assertEqual(eval(" x + y", d1, d2), 7)
+        self.assertEqual(eval("\tx + y", d1, d2), 7)
+        # TODO:
+        #self.assertEqual(eval("\nx + y", d1, d2), 7)
+        #self.assertEqual(eval(" \t\nx + y", d1, d2), 7)
+        #self.assertEqual(eval("\n\r\nx + y", d1, d2), 7)
+        #self.assertRaises(IndentationError, eval, "\n x + y", d1, d2)
+        #self.assertRaises(IndentationError, eval, "\r x + y", d1, d2)
+        #self.assertRaises(IndentationError, eval, "\n\tx + y", d1, d2)
 
         self.assertRaises(NameError, eval, "x + y", d1)
         self.assertRaises(NameError, eval, "x + y", d1, None)
@@ -702,6 +713,19 @@ class BuiltinsTest2(IronPythonTestCase):
         for x in ['exec', 'eval', 'single']:
             c = compile('2', 'foo', x)
             self.assertEqual(c.co_filename, 'foo')
+
+            compile(b'3.14', 'foo', x)
+
+            ba = bytearray(b'3.14')
+            compile(ba, 'foo', x)
+            ba.append(ord('\n')) # bytearray size is not locked
+
+            import array
+            compile(array.array('i', b'3.14'), 'foo', x)
+
+            compile(memoryview(b'3.14'), 'foo', x)
+            self.assertRaises(TypeError, compile, memoryview(b'3.14')[::2], 'foo', x)
+
 
         class mystdout(object):
             def __init__(self):

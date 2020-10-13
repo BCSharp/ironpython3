@@ -187,19 +187,17 @@ Noteworthy: None is the `nil' object; Ellipsis represents `...' in slices.";
         }
 
         [Documentation("")] // provided by first overload
-        public static object compile(CodeContext/*!*/ context, [BytesLike, NotNull]IList<byte> source, [NotNull]string filename, [NotNull]string mode, object? flags = null, bool dont_inherit = false, int optimize = -1) {
+        public static object compile(CodeContext/*!*/ context, [NotNull]IBufferProtocol source, [NotNull]string filename, [NotNull]string mode, object? flags = null, bool dont_inherit = false, int optimize = -1) {
             // TODO: implement optimize
             var sourceCodeKind = ValidateCompileMode(mode);
+            if (!source.Supports(BufferFlags.Simple))
+                throw PythonOps.TypeError("compile() arg 1 must be a string, bytes or AST object");
 
-            byte[] bytes = source as byte[] ?? ((source is Bytes b) ? b.UnsafeByteArray : source.ToArray());
-            var contentProvider = new MemoryStreamContentProvider(context.LanguageContext, bytes, filename);
+            var contentProvider = new BufferProtocolContentProvider(context.LanguageContext, source, filename);
             var sourceUnit = context.LanguageContext.CreateSourceUnit(contentProvider, filename, sourceCodeKind);
 
             return CompileHelper(context, sourceUnit, mode, flags, dont_inherit);
         }
-
-        public static object compile(CodeContext/*!*/ context, [NotNull]MemoryView source, [NotNull]string filename, [NotNull]string mode, object? flags = null, bool dont_inherit = false, int optimize = -1)
-            => compile(context, source.tobytes(), filename, mode, flags, dont_inherit, optimize);
 
         [Documentation("")] // provided by first overload
         public static object compile(CodeContext/*!*/ context, [NotNull]string source, [NotNull]string filename, [NotNull]string mode, object? flags = null, bool dont_inherit = false, int optimize = -1) {
@@ -296,22 +294,24 @@ Noteworthy: None is the `nil' object; Ellipsis represents `...' in slices.";
 
         [Documentation("")] // provided by first overload
         [LightThrowing]
-        public static object eval(CodeContext/*!*/ context, [BytesLike, NotNull]IList<byte> expression, PythonDictionary? globals = null, object? locals = null) {
+        public static object eval(CodeContext/*!*/ context, [NotNull]IBufferProtocol expression, PythonDictionary? globals = null, object? locals = null) {
             if (locals != null && !PythonOps.IsMappingType(context, locals)) {
                 throw PythonOps.TypeError("locals must be mapping");
             }
 
-            byte[] bytes = expression as byte[] ?? ((expression is Bytes b) ? b.UnsafeByteArray : expression.ToArray());
+            using var buf = expression.GetBufferNoThrow(BufferFlags.Simple)
+                ?? throw PythonOps.TypeError("eval() arg 1 must be a string, bytes or code object");
 
             // Count number of whitespace characters to skip at the beginning.
             // It assumes an ASCII compatible encoding (like UTF-8 or Latin-1) but excludes UTF-16 or UTF-32.
             // This is not a problem as widechar Unicode encodings, to be recognized, must start with a BOM anyway
             // Whitespace after a BOM is not skipped (CPython behavior).
             int skip = 0;
+            var bytes = buf.AsReadOnlySpan();
             while (skip < bytes.Length && (bytes[skip] == (byte)' ' || bytes[skip] == (byte)'\t')) skip++;
 
             var sourceUnit = context.LanguageContext.CreateSourceUnit(
-                new MemoryStreamContentProvider(context.LanguageContext, bytes, skip, bytes.Length - skip, "<string>"),
+                new BufferProtocolContentProvider(context.LanguageContext, expression, skip, "<string>"),
                 "<string>",
                 SourceCodeKind.Expression);
             PythonCompilerOptions compilerOptions = GetRuntimeGeneratedCodeCompilerOptions(context, inheritContext: true, cflags: 0);
@@ -373,10 +373,12 @@ Noteworthy: None is the `nil' object; Ellipsis represents `...' in slices.";
         }
 
         [Documentation("")] // provided by first overload
-        public static void exec(CodeContext/*!*/ context, [BytesLike, NotNull]IList<byte> code, PythonDictionary? globals = null, object? locals = null) {
-            byte[] bytes = code as byte[] ?? ((code is Bytes b) ? b.UnsafeByteArray : code.ToArray());
+        public static void exec(CodeContext/*!*/ context, [NotNull]IBufferProtocol code, PythonDictionary? globals = null, object? locals = null) {
+            if (!code.Supports(BufferFlags.Simple))
+                throw PythonOps.TypeError("exec() arg 1 must be a string, bytes or code object");
+
             SourceUnit source = context.LanguageContext.CreateSourceUnit(
-                new MemoryStreamContentProvider(context.LanguageContext, bytes, "<string>"),
+                new BufferProtocolContentProvider(context.LanguageContext, code, "<string>"),
                 "<string>",
                 SourceCodeKind.Statements);
             PythonCompilerOptions compilerOptions = Builtin.GetRuntimeGeneratedCodeCompilerOptions(context, true, 0);

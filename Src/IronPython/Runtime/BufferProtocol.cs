@@ -126,6 +126,15 @@ namespace IronPython.Runtime {
                 return null;
             }
         }
+
+        internal static bool Supports(this IBufferProtocol bufferProtocol, BufferFlags flags) {
+            try {
+                bufferProtocol.GetBuffer(flags).Dispose();
+                return true;
+            } catch (BufferException) {
+                return false;
+            }
+        }
     }
 
     /// <summary>
