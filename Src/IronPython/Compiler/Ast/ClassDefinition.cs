@@ -101,6 +101,8 @@ namespace IronPython.Compiler.Ast {
 
         internal override bool ExposesLocalVariable(PythonVariable variable) => true;
 
+        internal override bool NeedsClosureCreation(PythonVariable variable) => variable != ClassVariable;
+
         internal override bool TryBindOuter(ScopeStatement from, PythonReference reference, out PythonVariable variable) {
             if (reference.Name == "__class__") {
                 variable = ClassVariable;
@@ -183,10 +185,21 @@ namespace IronPython.Compiler.Ast {
 
             classDef = AddDecorators(classDef, Decorators);
 
+            MSAst.ParameterExpression classvar;
+            MSAst.Expression init = null;
+            if (GetVariableExpression(ClassVariable) is ClosureExpression closure) {
+                classvar = (MSAst.ParameterExpression)closure.ClosureCell;
+                init = closure.Create();
+            } else {
+                classvar = (MSAst.ParameterExpression)GetVariableExpression(ClassVariable);
+                init = Ast.Constant(null);
+            }
+
             return GlobalParent.AddDebugInfoAndVoid(
                 Ast.Block(
-                    new[] { _classDefTemp },
+                    new[] { _classDefTemp, classvar },
                     new Ast[] {
+                        init,
                         Ast.Assign(_classDefTemp, classDef),
                         AssignValue(Parent.GetVariableExpression(PythonVariable), _classDefTemp),
                         AssignValue(GetVariableExpression(ClassVariable), _classDefTemp),

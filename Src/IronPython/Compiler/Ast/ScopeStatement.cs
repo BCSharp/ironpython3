@@ -305,6 +305,8 @@ namespace IronPython.Compiler.Ast {
 
         internal abstract bool ExposesLocalVariable(PythonVariable variable);
 
+        internal virtual bool NeedsClosureCreation(PythonVariable variable) => true;
+
         internal virtual MSAst.Expression GetParentClosureTuple() {
             // PythonAst will never call this.
             throw new NotSupportedException();
@@ -712,8 +714,10 @@ namespace IronPython.Compiler.Ast {
                 foreach (PythonVariable variable in Variables.Values) {
                     if (variable.Kind is VariableKind.Local or VariableKind.Parameter) {
                         if (GetVariableExpression(variable) is ClosureExpression closure) {
-                            init.Add(closure.Create());
                             locals.Add((MSAst.ParameterExpression)closure.ClosureCell);
+                            if (NeedsClosureCreation(variable)) {
+                                init.Add(closure.Create());
+                            }
                         } else if (variable.Kind == VariableKind.Local) {
                             locals.Add((MSAst.ParameterExpression)GetVariableExpression(variable));
                             if (variable.ReadBeforeInitialized) {
