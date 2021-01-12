@@ -713,7 +713,9 @@ namespace IronPython.Compiler.Ast {
                     if (variable.Kind is VariableKind.Local or VariableKind.Parameter) {
                         if (GetVariableExpression(variable) is ClosureExpression closure) {
                             init.Add(closure.Create());
-                            locals.Add((MSAst.ParameterExpression)closure.ClosureCell);
+                            if (closure.ClosureCell is MSAst.ParameterExpression parameter) {
+                                locals.Add(parameter);
+                            }
                         } else if (variable.Kind == VariableKind.Local) {
                             locals.Add((MSAst.ParameterExpression)GetVariableExpression(variable));
                             if (variable.ReadBeforeInitialized) {

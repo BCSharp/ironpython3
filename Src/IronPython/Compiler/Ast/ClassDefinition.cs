@@ -29,10 +29,12 @@ namespace IronPython.Compiler.Ast {
         private LightLambdaExpression _dlrBody;       // the transformed body including all of our initialization, etc...
 
         private static int _classId;
+        private readonly int _classInstanceId;
 
         private static readonly MSAst.ParameterExpression _parentContextParam = Ast.Parameter(typeof(CodeContext), "$parentContext");
         private static readonly MSAst.Expression _tupleExpression = MSAst.Expression.Call(AstMethods.GetClosureTupleFromContext, _parentContextParam);
         private static readonly MSAst.ParameterExpression _classDefTemp = Ast.Parameter(typeof(object), "$class_definition");
+        private static readonly Type _classVariableTupleType = MutableTuple.MakeTupleType(typeof(ClosureCell));
 
         public ClassDefinition(string name, Expression[] bases, Arg[] keywords, Statement body = null) {
             ContractUtils.RequiresNotNullItems(bases, nameof(bases));
@@ -43,6 +45,7 @@ namespace IronPython.Compiler.Ast {
             _keywords = keywords;
             Body = body;
             Metaclass = keywords.Where(arg => arg.Name == "metaclass").Select(arg => arg.Expression).FirstOrDefault();
+            _classInstanceId = Interlocked.Increment(ref _classId);
         }
 
         public SourceLocation Header => GlobalParent.IndexToLocation(HeaderIndex);
@@ -95,11 +98,16 @@ namespace IronPython.Compiler.Ast {
             }
         }
 
-        internal void CreateClassVariable() {
-            ClassVariable = EnsureVariable("__class__");
-        }
-
         internal override bool ExposesLocalVariable(PythonVariable variable) => true;
+
+        /// <summary>
+        /// The variable used to hold out a single element tuple containing the __class__ variable.
+        /// </summary>
+        internal MSAst.ParameterExpression ClassVariableTuple { get; private set; }
+
+        internal void CreateClassVariable() {
+            ClassVariable = DefineParameter("__class__");
+        }
 
         internal override bool TryBindOuter(ScopeStatement from, PythonReference reference, out PythonVariable variable) {
             if (reference.Name == "__class__") {
@@ -147,6 +155,12 @@ namespace IronPython.Compiler.Ast {
             return null;
         }
 
+        internal override void FinishBind(PythonNameBinder binder) {
+            base.FinishBind(binder);
+            ClassVariableTuple = Ast.Parameter(_classVariableTupleType, $"$__class__{_classInstanceId}_tuple");
+            _variableMapping[ClassVariable] = new ClosureExpression(ClassVariable, Ast.Property(ClassVariableTuple, "Item000"), null);
+        }
+
         private static readonly MSAst.Expression NullLambda = AstUtils.Default(typeof(Func<CodeContext, CodeContext>));
 
         public override MSAst.Expression Reduce() {
@@ -185,7 +199,7 @@ namespace IronPython.Compiler.Ast {
 
             return GlobalParent.AddDebugInfoAndVoid(
                 Ast.Block(
-                    new[] { _classDefTemp },
+                    new[] { _classDefTemp, ClassVariableTuple },
                     new Ast[] {
                         Ast.Assign(_classDefTemp, classDef),
                         AssignValue(Parent.GetVariableExpression(PythonVariable), _classDefTemp),
@@ -210,6 +224,17 @@ namespace IronPython.Compiler.Ast {
             init.Add(Ast.Assign(PythonAst._globalContext, new GetGlobalContextExpression(_parentContextParam)));
 
             GlobalParent.PrepareScope(locals, init);
+
+            locals.Add(ClassVariableTuple);
+            init.Add(
+                MSAst.Expression.Assign(
+                    ClassVariableTuple,
+                    MSAst.Expression.Convert(
+                        MutableTuple.Create(((ClosureExpression)GetVariableExpression(ClassVariable)).ClosureCell),
+                        _classVariableTupleType
+                    )
+                )
+            );
 
             CreateVariables(locals, init);
 
@@ -258,7 +283,7 @@ namespace IronPython.Compiler.Ast {
                     locals,
                     bodyStmt
                 ),
-                Name + "$" + Interlocked.Increment(ref _classId),
+                Name + "$" + _classInstanceId,
                 new[] { _parentContextParam }
                 );
 
