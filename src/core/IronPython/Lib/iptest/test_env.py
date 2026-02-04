@@ -65,6 +65,12 @@ if is_cli:
     is_net45Or46 = is_net40 and version.Minor == 0 and version.Build == 30319
     is_net46 = is_net40 and version.Minor == 0 and version.Build == 30319 and version.Revision == 42000
 
+#-- Mono version we're running on (if any)
+mono_version = ()
+if is_mono:
+    import clr
+    mono_version = tuple(int(x) for x in clr.FrameworkDescription.Split(' ')[1].Split('.'))
+
 #--Newlines
 if is_ironpython:
     newline = System.Environment.NewLine

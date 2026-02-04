@@ -1,4 +1,5 @@
 import os, unittest
+from iptest import is_arm64, is_mono, mono_version
 from ctypes import *
 
 try:
@@ -10,6 +11,7 @@ except NameError:
 import _ctypes_test
 lib = CDLL(_ctypes_test.__file__)
 
+@unittest.skipIf(is_arm64 and is_mono and mono_version < (6, 14, 0), "Mono 6.14+ required for ARM64 support")
 class CFuncPtrTestCase(unittest.TestCase):
     def test_basic(self):
         X = WINFUNCTYPE(c_int, c_int, c_int)
