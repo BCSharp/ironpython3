@@ -3390,7 +3390,7 @@ namespace IronPython.Runtime.Operations {
 
         public static object? PublishModule(CodeContext/*!*/ context, string name) {
             context.LanguageContext.SystemStateModules.TryGetValue(name, out object? original);
-            var module = ((PythonScopeExtension)context.GlobalScope.GetExtension(context.LanguageContext.ContextId)).Module;
+            var module = ((PythonScopeExtension)context.GlobalScope.GetExtension(context.LanguageContext.ContextId)!).Module;
             context.LanguageContext.SystemStateModules[name] = module;
             return original;
         }
@@ -3442,7 +3442,7 @@ namespace IronPython.Runtime.Operations {
             }
         }
 
-        public static void ShowWarning(CodeContext/*!*/ context, PythonType category, string message, string filename, int lineNo) {
+        public static void ShowWarning(CodeContext/*!*/ context, PythonType category, string message, string? filename, int lineNo) {
             PythonContext pc = context.LanguageContext;
             object? warnings = pc.GetWarningsModule();
             object? warn = null;
@@ -4335,8 +4335,8 @@ namespace IronPython.Runtime.Operations {
             PythonOps.SetAttr(context, scope, name, value);
         }
 
-        internal static object ScopeGetMember(CodeContext/*!*/ context, Scope scope, string name) {
-            if (((object)scope.Storage) is ScopeStorage scopeStorage) {
+        internal static object? ScopeGetMember(CodeContext/*!*/ context, Scope scope, string name) {
+            if (scope.Storage is ScopeStorage scopeStorage) {
                 return scopeStorage.GetValue(name, false);
             }
 
@@ -4344,7 +4344,7 @@ namespace IronPython.Runtime.Operations {
         }
 
         internal static bool ScopeTryGetMember(CodeContext/*!*/ context, Scope scope, string name, out object? value) {
-            if (((object)scope.Storage) is ScopeStorage scopeStorage) {
+            if (scope.Storage is ScopeStorage scopeStorage) {
                 return scopeStorage.TryGetValue(name, false, out value);
             }
 
@@ -4352,7 +4352,7 @@ namespace IronPython.Runtime.Operations {
         }
 
         internal static bool ScopeContainsMember(CodeContext/*!*/ context, Scope scope, string name) {
-            if (((object)scope.Storage) is ScopeStorage scopeStorage) {
+            if (scope.Storage is ScopeStorage scopeStorage) {
                 return scopeStorage.HasValue(name, false);
             }
 
@@ -4360,7 +4360,7 @@ namespace IronPython.Runtime.Operations {
         }
 
         internal static bool ScopeDeleteMember(CodeContext/*!*/ context, Scope scope, string name) {
-            if (((object)scope.Storage) is ScopeStorage scopeStorage) {
+            if (scope.Storage is ScopeStorage scopeStorage) {
                 return scopeStorage.DeleteValue(name, false);
             }
 
@@ -4370,7 +4370,7 @@ namespace IronPython.Runtime.Operations {
         }
 
         internal static IList<object?> ScopeGetMemberNames(CodeContext/*!*/ context, Scope scope) {
-            if (((object)scope.Storage) is ScopeStorage scopeStorage) {
+            if (scope.Storage is ScopeStorage scopeStorage) {
                 List<object?> res = new List<object?>();
 
                 foreach (string name in scopeStorage.GetMemberNames()) {
