@@ -29,7 +29,15 @@ function Main([String] $target, [String] $configuration) {
         }
     }
 
-    dotnet msbuild Build.proj /m /t:$target /p:Configuration=$configuration /verbosity:minimal /nologo /p:Platform="Any CPU" /bl:build-$target-$configuration.binlog
+    $props = @(
+        'Build.proj', '/m', "/t:$target",
+        "/p:Configuration=$configuration",
+        '/verbosity:minimal', '/nologo',
+        '/p:Platform=Any CPU',
+        "/bl:build-$target-$configuration.binlog"
+    )
+    if ($frameworks -contains 'net11.0') { $props += '/p:IncludeNet11=true' }
+    dotnet msbuild @props
     # use the exit code of msbuild as the exit code for this script
     $global:Result = $LastExitCode
 }
