@@ -23,11 +23,13 @@
     <Features>$(Features);FEATURE_METADATA_READER</Features>
     <Features>$(Features);FEATURE_MMAP</Features>
     <Features>$(Features);FEATURE_NATIVE</Features>
+    <Features>$(Features);FEATURE_NET_ASYNC</Features>
     <Features>$(Features);FEATURE_OSPLATFORMATTRIBUTE</Features>
     <Features>$(Features);FEATURE_PIPES</Features>
     <Features>$(Features);FEATURE_PROCESS</Features>
     <Features>$(Features);FEATURE_REFEMIT</Features>
     <Features>$(Features);FEATURE_REGISTRY</Features>
+    <Features>$(Features);FEATURE_RUNTIME_ASYNC</Features>
     <Features>$(Features);FEATURE_RUNTIMEINFORMATION</Features>
     <Features>$(Features);FEATURE_SECURITY_RULES</Features>
     <Features>$(Features);FEATURE_STACK_TRACE</Features>
